@@ -10,6 +10,8 @@ var AWS = require('aws-sdk')
 
 
 var sqs = new AWS.SQS();
+var CuraEngine = /darwin/.test(process.platform) ? 'CuraEngine_darwin' : 'CuraEngine';
+
 
 function runLoop() {
   MessageQueue.poolMessage(ac.sqs_run)
@@ -24,7 +26,7 @@ function runLoop() {
 function runSlicer(configFile, stl, gcodeFilePath) {
   return new Promise(function(resolve, reject) {
     console.info('-- SLICE');
-    var cmd = "CURA_ENGINE_SEARCH_PATH=./ ./CuraEngine slice -v -j "+configFile+" -l "+stl;
+    var cmd = "CURA_ENGINE_SEARCH_PATH=./ ./"+CuraEngine+" slice -v -j "+configFile+" -l "+stl;
     cmd += " -s mesh_position_z=\"0\" -s center_object=\"true\"";
     cmd += " -o "+gcodeFilePath;
     console.info(cmd);
@@ -239,6 +241,10 @@ function sliceStl(res) {
       })
       .then(function(r) {
         // cleanup
+        fs.unlinkSync(stlFilePath);
+        fs.unlinkSync(configOut);
+        //fs.unlinkSync(gcodeFilePath);
+        resolve()
       })
       .catch(function(err) {
         // log error
