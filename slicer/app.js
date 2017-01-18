@@ -176,7 +176,7 @@ function writeGcodeHeader(inFilePath, slicerOut, event) {
       var hs = ";" + JSON.stringify(head);
 
       // write to file
-      exec('echo -e "'+(hs.replace(/"/g, '\\"').replace("\n", ""))+'\n$(cat '+inFilePath+')" > '+inFilePath, function callback(err, stdout, stderr) {
+      exec('echo "'+(hs.replace(/"/g, '\\"').replace("\n", ""))+'\n$(cat '+inFilePath+')" > '+inFilePath, function callback(err, stdout, stderr) {
         if (err) {
           reject(err);
         } else {
