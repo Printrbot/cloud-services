@@ -1,0 +1,6 @@
+{
+  "sqs_run": "https://sqs.us-west-2.amazonaws.com/637331967574/slice",
+  "sqs_completed": "https://sqs.us-west-2.amazonaws.com/637331967574/slice_completed",
+  "region": "us-west-2",
+  "bucket": "files.printrapp.com"
+}
