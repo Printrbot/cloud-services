@@ -243,7 +243,7 @@ function sliceStl(res) {
         // cleanup
         fs.unlinkSync(stlFilePath);
         fs.unlinkSync(configOut);
-        //fs.unlinkSync(gcodeFilePath);
+        fs.unlinkSync(gcodeFilePath);
         resolve()
       })
       .catch(function(err) {
