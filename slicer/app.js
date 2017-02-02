@@ -94,6 +94,9 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     // support
     if (params.support)
       jsonConfig.overrides.support_enable = { "default_value": true };
+    else
+      jsonConfig.overrides.support_enable = { "default_value": false };
+
 
     // brim
     if (params.brim)
