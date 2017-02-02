@@ -67,27 +67,27 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     // infill
     switch(params.infill) {
       case 'hollow':
-        jsonConfig.overrides.infill_line_distance = { "default_value": 0 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 0 };
         break;
 
       case 'light':
-        jsonConfig.overrides.infill_line_distance = { "default_value": 5 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 5 };
         break;
 
       case 'standard':
-        jsonConfig.overrides.infill_line_distance = { "default_value": 2 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 20 };
         break;
 
       case 'medium':
-        jsonConfig.overrides.infill_line_distance = { "default_value": 1 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 30 };
         break;
 
       case 'heavy':
-        jsonConfig.overrides.infill_line_distance = { "default_value": .5 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 50 };
         break;
 
       case 'solid':
-        jsonConfig.overrides.infill_line_distance = { "default_value": 100 };
+        jsonConfig.overrides.infill_sparse_density = { "default_value": 100 };
         break;
     }
 
