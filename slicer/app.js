@@ -60,6 +60,16 @@ var infillConfig = {
   'heavy': 50.0
 }
 
+// Factor applied to layer_height to determine infill_line_width. For example, with a multiplier of
+// 3.0 and a layer_height of 0.2, we would set infill_line_width to 0.6
+var infillLineWidthMultiplier = 3.0;
+
+// Additional factor applied in the formula to calculate infill_line_distance, based on the default
+// selection of the "grid" infill pattern. Selection of an alternative infill pattern isn't currently
+// exposed but we might want to use a different value here if it were. See fdmprinter.def.json for
+// more info.
+var infillPatternMultiplier = 2.0;
+
 /**
  * Set CuraEngine overrides based on print settings parameters.
  */
@@ -76,6 +86,10 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     }
     jsonConfig.overrides.layer_height = { "default_value": resolution };
 
+    var infill_line_width = Math.round((infillLineWidthMultiplier * resolution * 100.0), 2) / 100.0;
+    console.info("Calculated infill_line_width = %f (resolution = %f, infillLineWidthMultiplier = %f)",
+      infill_line_width, resolution, infillLineWidthMultiplier);
+
     // Calculate infill_line_distance override based on desired density. Default to
     // standard density if not specified or unknown value specified.
     var infill_sparse_density = infillConfig[params.infill];
@@ -83,10 +97,13 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
       console.warn("Unknown infill specified: '%s', defaulting to 'standard'", params.infill);
       infill_sparse_density = infillConfig.standard;
     }
-    // Note that `(resolution * 100.0) / infill_sparse_density` gives us the real result and the rest
-    // is to force rounding to a maximum of 2 decimal places
-    var infill_line_distance = Math.round(((resolution * 100.0) / infill_sparse_density) * 100, 2) / 100.0;
-    jsonConfig.overrides.infill_line_distance = { "default_value": infill_line_distance }
+    console.info("infill_sparse_density = %d", infill_sparse_density);
+
+    // Note that we're multiplying by 100, rounding, and then dividing by 100 again to get a value rounded
+    // to 2 decimal places
+    var line_distance = ((infill_line_width * 100.0) / infill_sparse_density) * infillPatternMultiplier;
+    jsonConfig.overrides.infill_line_distance = { "default_value": Math.round(line_distance * 100, 2) / 100.0 }
+    console.info("Calculated infill_line_distance = %f", jsonConfig.overrides.infill_line_distance.default_value);
 
     // Set support_enable override if support enabled. Default to false if not specified.
     if (params.support) {
@@ -94,11 +111,13 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     } else {
       jsonConfig.overrides.support_enable = { "default_value": false };
     }
+    console.info("Print support: %s", jsonConfig.overrides.support_enable.default_value);
 
     // Set adhesion_type override to Brim if brim enabled. Do not set if not specified.
     if (params.brim) {
       jsonConfig.overrides.adhesion_type = { "default_value": "Brim" };
     }
+    console.info("Print brim: false");
 
     // write config to file
     fs.writeFile(outFilePath, JSON.stringify(jsonConfig), 'utf8', function(err, res) {
