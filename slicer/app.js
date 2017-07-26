@@ -93,7 +93,7 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     // Calculate infill_line_distance override based on desired density. Default to
     // standard density if not specified or unknown value specified.
     var infill_sparse_density = infillConfig[params.infill];
-    if (!infill_sparse_density) {
+    if (infill_sparse_density === null) {
       console.warn("Unknown infill specified: '%s', defaulting to 'standard'", params.infill);
       infill_sparse_density = infillConfig.standard;
     }
@@ -101,7 +101,10 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
 
     // Note that we're multiplying by 100, rounding, and then dividing by 100 again to get a value rounded
     // to 2 decimal places
-    var line_distance = ((infill_line_width * 100.0) / infill_sparse_density) * infillPatternMultiplier;
+    var line_distance = 0.0;
+    if (infill_sparse_density > 0) {
+        line_distance = ((infill_line_width * 100.0) / infill_sparse_density) * infillPatternMultiplier;
+    }
     jsonConfig.overrides.infill_line_distance = { "default_value": Math.round(line_distance * 100, 2) / 100.0 }
     console.info("Calculated infill_line_distance = %f", jsonConfig.overrides.infill_line_distance.default_value);
 
