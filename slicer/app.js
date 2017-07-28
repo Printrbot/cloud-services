@@ -116,11 +116,12 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     }
     console.info("Print support: %s", jsonConfig.overrides.support_enable.default_value);
 
-    // Set adhesion_type override to Brim if brim enabled. Do not set if not specified.
+    // Set adhesion_type override to "brim" if brim enabled. Do not set if not specified.
     if (params.brim) {
-      jsonConfig.overrides.adhesion_type = { "default_value": "Brim" };
+      jsonConfig.overrides.adhesion_type = { "default_value": "brim" };
+      jsonConfig.overrides.skirt_brim_line_width = { "default_value": "0.3" };
     }
-    console.info("Print brim: false");
+    console.info("Print brim:", params.brim);
 
     // write config to file
     fs.writeFile(outFilePath, JSON.stringify(jsonConfig), 'utf8', function(err, res) {
