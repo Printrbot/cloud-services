@@ -8,10 +8,8 @@ var AWS = require('aws-sdk')
   , MessageQueue = require('./util/message_queue.js')
   , FileRepo = require('./util/file_repo.js');
 
-
 var sqs = new AWS.SQS();
 var CuraEngine = /darwin/.test(process.platform) ? 'CuraEngine_darwin' : 'CuraEngine';
-
 
 function runLoop() {
   MessageQueue.poolMessage(ac.sqs_run)
@@ -26,9 +24,9 @@ function runLoop() {
 function runSlicer(configFile, stl, gcodeFilePath) {
   return new Promise(function(resolve, reject) {
     console.info('-- SLICE');
-    var cmd = "CURA_ENGINE_SEARCH_PATH=./ ./"+CuraEngine+" slice -v -j "+configFile+" -l "+stl;
+    var cmd = "CURA_ENGINE_SEARCH_PATH=./ ./" + CuraEngine + " slice -v -j " + configFile + " -l " + stl;
     cmd += " -s mesh_position_z=\"0\" -s center_object=\"true\"";
-    cmd += " -o "+gcodeFilePath;
+    cmd += " -o " + gcodeFilePath;
     console.info(cmd);
     exec(cmd, function callback(err, stdout, stderr) {
       if (err) {
@@ -44,63 +42,85 @@ function runSlicer(configFile, stl, gcodeFilePath) {
   });
 }
 
+var resolutionConfig = {
+  'low': 0.2,
+  'standard': 0.1,
+  'high': 0.05
+};
 
+var infillConfig = {
+  'hollow': 0.0,
+  'sparse': 10.0,
+  'standard': 20.0,
+  'dense': 30.0,
+  'solid': 70.0,
+  /* Deprecated, retained for backward compatibility */
+  'light': 10.0,
+  'medium': 20.0,
+  'heavy': 50.0
+}
+
+// Factor applied to layer_height to determine infill_line_width. For example, with a multiplier of
+// 3.0 and a layer_height of 0.2, we would set infill_line_width to 0.6
+var infillLineWidthMultiplier = 3.0;
+
+// Additional factor applied in the formula to calculate infill_line_distance, based on the default
+// selection of the "grid" infill pattern. Selection of an alternative infill pattern isn't currently
+// exposed but we might want to use a different value here if it were. See fdmprinter.def.json for
+// more info.
+var infillPatternMultiplier = 2.0;
+
+/**
+ * Set CuraEngine overrides based on print settings parameters.
+ */
 function buildSimpleConfig(inFilePath, outFilePath,  params) {
   return new Promise(function(resolve, reject) {
     var jsonConfig = require(inFilePath);
 
-    // resolution
-    switch(params.resolution) {
-      case 'low':
-        jsonConfig.overrides.layer_height = { "default_value": 0.2 };
-        break;
-
-      case 'standard':
-        jsonConfig.overrides.layer_height = { "default_value": 0.1 };
-        break;
-
-      case 'high':
-        jsonConfig.overrides.layer_height = { "default_value": 0.05 };
-        break;
+    // Set layer_height override. Default to standard resolution if not specified
+    // or unknown value specified.
+    var resolution = resolutionConfig[params.resolution];
+    if (!resolution) {
+      console.warn("Unknown resolution specified: '%s', defaulting to 'standard'", params.resolution);
+      resolution = resolutionConfig.standard;
     }
+    jsonConfig.overrides.layer_height = { "default_value": resolution };
 
-    // infill
-    switch(params.infill) {
-      case 'hollow':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 0 };
-        break;
+    var infill_line_width = Math.round((infillLineWidthMultiplier * resolution * 100.0), 2) / 100.0;
+    console.info("Calculated infill_line_width = %f (resolution = %f, infillLineWidthMultiplier = %f)",
+      infill_line_width, resolution, infillLineWidthMultiplier);
 
-      case 'light':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 5 };
-        break;
-
-      case 'standard':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 20 };
-        break;
-
-      case 'medium':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 30 };
-        break;
-
-      case 'heavy':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 50 };
-        break;
-
-      case 'solid':
-        jsonConfig.overrides.infill_sparse_density = { "default_value": 100 };
-        break;
+    // Calculate infill_line_distance override based on desired density. Default to
+    // standard density if not specified or unknown value specified.
+    var infill_sparse_density = infillConfig[params.infill];
+    if (infill_sparse_density === null) {
+      console.warn("Unknown infill specified: '%s', defaulting to 'standard'", params.infill);
+      infill_sparse_density = infillConfig.standard;
     }
+    console.info("infill_sparse_density = %d", infill_sparse_density);
 
-    // support
-    if (params.support)
+    // Note that we're multiplying by 100, rounding, and then dividing by 100 again to get a value rounded
+    // to 2 decimal places
+    var line_distance = 0.0;
+    if (infill_sparse_density > 0) {
+        line_distance = ((infill_line_width * 100.0) / infill_sparse_density) * infillPatternMultiplier;
+    }
+    jsonConfig.overrides.infill_line_distance = { "default_value": Math.round(line_distance * 100, 2) / 100.0 }
+    console.info("Calculated infill_line_distance = %f", jsonConfig.overrides.infill_line_distance.default_value);
+
+    // Set support_enable override if support enabled. Default to false if not specified.
+    if (params.support) {
       jsonConfig.overrides.support_enable = { "default_value": true };
-    else
+    } else {
       jsonConfig.overrides.support_enable = { "default_value": false };
+    }
+    console.info("Print support: %s", jsonConfig.overrides.support_enable.default_value);
 
-
-    // brim
-    if (params.brim)
+    // Set adhesion_type override to Brim if brim enabled. Do not set if not specified.
+    if (params.brim) {
       jsonConfig.overrides.adhesion_type = { "default_value": "Brim" };
+    }
+    console.info("Print brim: false");
 
     // write config to file
     fs.writeFile(outFilePath, JSON.stringify(jsonConfig), 'utf8', function(err, res) {
@@ -147,7 +167,6 @@ function getLinesCount(filePath) {
     });
   })
 }
-
 
 function writeGcodeHeader(inFilePath, slicerOut, event) {
   console.info("-- WRITING GCODE HEADER ");
@@ -208,12 +227,12 @@ function sliceStl(res) {
       return reject("Required parameters missing");
 
     var s3 = new AWS.S3()
-      , keyPath = 'u/'+(event.user)+'/i/'+(event.id)+'/'
-      , stlFilePath = "/tmp/obj_"+(event.id)+".stl"
+      , keyPath = 'u/' + (event.user) + '/i/' + (event.id) + '/'
+      , stlFilePath = "/tmp/obj_" + (event.id) + ".stl"
       , bucket = 'files.printrapp.com'
       , configDefault = './simple.json'
-      , configOut = '/tmp/config_'+(event.id)+'.json'
-      , gcodeFilePath = '/tmp/out_'+(event.id)+'.gco'
+      , configOut = '/tmp/config_' + (event.id) + '.json'
+      , gcodeFilePath = '/tmp/out_' + (event.id) + '.gco'
 
     // download stl
     FileRepo.downloadFromS3(event.file_path, stlFilePath)

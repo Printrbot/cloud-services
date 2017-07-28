@@ -1,5 +1,5 @@
 {
-  "name": "pbcloud-slicer-node",
+  "name": "printrapp-render",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
@@ -9,9 +9,11 @@
   "author": "mick",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.7.23",
-    "bluebird": "^3.4.7",
+    "aws-sdk": "^2.1.38",
+    "bluebird": "^3.4.1",
+    "caman": "^4.1.2",
     "hat": "0.0.3",
-    "https": "^1.0.0"
+    "jimp": "^0.2.24"
   }
 }
+

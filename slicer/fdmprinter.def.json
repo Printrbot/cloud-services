@@ -2299,7 +2299,7 @@
                         "buildplate": "Touching Buildplate",
                         "everywhere": "Everywhere"
                     },
-                    "default_value": "everywhere",
+                    "default_value": "buildplate",
                     "enabled": "support_enable",
                     "settable_per_mesh": false,
                     "settable_per_extruder": false

@@ -1,1 +1,4 @@
 node_modules
+render/config/
+slicer/config/
+slicer/tmp/
