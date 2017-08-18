@@ -16,7 +16,7 @@ function runLoop() {
   .then(sliceStl)
   .then(runLoop)
   .catch(function(err) {
-    console.info("ERROR: ", err);
+    console.info("ERROR: " + err);
     return runLoop();
   })
 }
@@ -81,23 +81,23 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     // or unknown value specified.
     var resolution = resolutionConfig[params.resolution];
     if (!resolution) {
-      console.warn("Unknown resolution specified: '%s', defaulting to 'standard'", params.resolution);
+      console.log("Unknown resolution specified: '" + params.resolution + "', defaulting to 'standard'");
       resolution = resolutionConfig.standard;
     }
     jsonConfig.overrides.layer_height = { "default_value": resolution };
 
     var infill_line_width = Math.round((infillLineWidthMultiplier * resolution * 100.0), 2) / 100.0;
-    console.info("Calculated infill_line_width = %f (resolution = %f, infillLineWidthMultiplier = %f)",
-      infill_line_width, resolution, infillLineWidthMultiplier);
+    console.log("Calculated infill_line_width = " + infill_line_width + " (resolution = " + resolution
+      + ", infillLineWidthMultiplier = " + infillLineWidthMultiplier + ")");
 
     // Calculate infill_line_distance override based on desired density. Default to
     // standard density if not specified or unknown value specified.
     var infill_sparse_density = infillConfig[params.infill];
     if (infill_sparse_density === null) {
-      console.warn("Unknown infill specified: '%s', defaulting to 'standard'", params.infill);
+      console.log("Unknown infill specified: '" + params.infill + "', defaulting to 'standard'");
       infill_sparse_density = infillConfig.standard;
     }
-    console.info("infill_sparse_density = %d", infill_sparse_density);
+    console.log("infill_sparse_density =", infill_sparse_density);
 
     // Note that we're multiplying by 100, rounding, and then dividing by 100 again to get a value rounded
     // to 2 decimal places
@@ -106,7 +106,7 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
         line_distance = ((infill_line_width * 100.0) / infill_sparse_density) * infillPatternMultiplier;
     }
     jsonConfig.overrides.infill_line_distance = { "default_value": Math.round(line_distance * 100, 2) / 100.0 }
-    console.info("Calculated infill_line_distance = %f", jsonConfig.overrides.infill_line_distance.default_value);
+    console.log("Calculated infill_line_distance =", jsonConfig.overrides.infill_line_distance.default_value);
 
     // Set support_enable override if support enabled. Default to false if not specified.
     if (params.support) {
@@ -114,13 +114,18 @@ function buildSimpleConfig(inFilePath, outFilePath,  params) {
     } else {
       jsonConfig.overrides.support_enable = { "default_value": false };
     }
-    console.info("Print support: %s", jsonConfig.overrides.support_enable.default_value);
+    console.log("Print support:", jsonConfig.overrides.support_enable.default_value);
 
-    // Set adhesion_type override to Brim if brim enabled. Do not set if not specified.
+    // Set adhesion_type override to "brim" if brim enabled. Do not set if not specified.
     if (params.brim) {
-      jsonConfig.overrides.adhesion_type = { "default_value": "Brim" };
+      jsonConfig.overrides.adhesion_type = { "default_value": "brim" };
+      jsonConfig.overrides.skirt_brim_line_width = { "default_value": "0.3" };
+    } else {
+      jsonConfig.overrides.adhesion_type = { "default_value": "" };
+      jsonConfig.overrides.skirt_brim_line_width = { "default_value": "0" };
     }
-    console.info("Print brim: false");
+    console.log("Adhesion type:", jsonConfig.overrides.adhesion_type.default_value);
+    console.log("Brim line width:", jsonConfig.overrides.skirt_brim_line_width.default_value);
 
     // write config to file
     fs.writeFile(outFilePath, JSON.stringify(jsonConfig), 'utf8', function(err, res) {
