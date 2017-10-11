@@ -36,7 +36,7 @@ function renderPreview(stl_path)
     if (process.platform == "darwin") {
       var cmd = "/Applications/Blender/blender.app/Contents/MacOS/" + cmd;
     }
-    exec(cmd, {maxBuffer: 1024*1000}, function callback(err, stdout, stderr) {
+    exec(cmd, {maxBuffer: 1024 * 1024 * 10}, function callback(err, stdout, stderr) {
       if (err) {
         console.info("error", err);
         reject(err)
