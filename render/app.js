@@ -49,6 +49,7 @@ function renderPreview(stlPath) {
                 reject(err)
             } else {
                 console.info(`Render completed: outputFile=${outputFile}`);
+                console.info(`Standard output: ${stdOut}`);
                 resolve(outputFile);
             }
         });

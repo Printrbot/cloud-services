@@ -69,12 +69,14 @@ module.exports.downloadFromS3 = function(key) {
         var params = { Bucket: ac.bucket, Key: key };
         var s3 = new AWS.S3();
 
+        console.info(`Downloading: (S3) ${key} => (local) ${file_path}`);
         s3.getObject(params)
             .on('httpData', function(chunk) {
                 tempFile.write(chunk);
             })
             .on('httpDone', function() {
                 tempFile.end();
+                console.info(`Download complete: (S3) ${key} => (local) ${file_path}`);
                 resolve(file_path);
             })
             .send();
