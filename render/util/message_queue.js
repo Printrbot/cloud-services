@@ -65,11 +65,9 @@ module.exports.poolMessage = function(queue_url) {
         WaitTimeSeconds: 20
     };
 
-    console.info("Waiting for queue message...");
     var sqs = new AWS.SQS();
     return new Promise(function(resolve, reject) {
         sqs.receiveMessage(params, function(err, data) {
-            console.info(`Received message: ${data}`);
             if (err) {
                 console.error(`Failed to receive queue message: ${err}`);
                 reject(err);

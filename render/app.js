@@ -2,7 +2,6 @@
 // Author: Mick Balaban
 // Copyright (c) 2016 Printrbot
 
-// add timestamps in front of log messages
 require('console-stamp')(console, 'yyyy-mm-dd HH:MM:ss.l');
 
 var AWS = require('aws-sdk')
@@ -14,17 +13,17 @@ var AWS = require('aws-sdk')
     , FileRepo = require('./util/file_repo');
 
 const TEMP_DIR = '/tmp/';
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 
 /**
- * Main program loop. Receive and process the next message from the queue, then repeat. On error,
- * log and repeat.
+ * Main program loop. Receive and process the next message from the queue, then repeat.
  */
 function runLoop() {
     MessageQueue.poolMessage(ac.sqs_render)
         .then(processMessage)
         .then(runLoop)
         .catch(function(err) {
-            console.error("An error occurred while processing render request: ${err}");
+            console.error(`An error occurred while processing render request: ${err}`);
             return runLoop();
         }
     );
@@ -32,7 +31,8 @@ function runLoop() {
 
 function renderPreview(stlPath) {
     return new Promise(function(resolve, reject) {
-        var cmd = "blender -b render.blend -P run.py -- " + stlPath + " " + stlPath + ".png";
+        var outputFile = stlPath + ".png";
+        var cmd = "blender -b render.blend -P run.py -- " + stlPath + " " + outputFile;
 
         // Path hack when running locally (Mac only)
         if (process.platform == "darwin") {
@@ -41,16 +41,15 @@ function renderPreview(stlPath) {
 
         // Execute render process as a shelled process
         console.info(`Rendering preview image with command: ${cmd}`);
-        exec(cmd, {maxBuffer: 1024 * 1024 * 10}, function callback(err, stdOut, stdErr) {
+        exec(cmd, {maxBuffer: MAX_BUFFER_SIZE}, function callback(err, stdOut, stdErr) {
             if (err) {
                 console.error(`Failed to render preview image: ${err}`);
                 console.error(`Standard output: ${stdOut}`);
                 console.error(`Standard error: ${stdErr}`);
                 reject(err)
             } else {
-                var stlFilename = stlPath + '.png';
-                console.info(`Render completed: stlFile=${stlFilename}`);
-                resolve(stlFilename);
+                console.info(`Render completed: outputFile=${outputFile}`);
+                resolve(outputFile);
             }
         });
     });
@@ -120,14 +119,15 @@ function processMessage(data) {
                             MessageQueue.sendRenderCompleteMessage(file_info)
                                 .then(MessageQueue.deleteRenderRequestMessage(message.ReceiptHandle))
                                 .then(function(r) {
-                                    return resolve();
-                                });
-                            }
-                        );
+                                    resolve();
+                                }
+                            );
+                        });
                     }
                 );
+            }
         }
-    });
+    );
 }
 
 runLoop();
