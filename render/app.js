@@ -8,6 +8,7 @@ var AWS = require('aws-sdk')
     , ac = require('./config/aws')
     , exec = require('child_process').exec
     , Promise = require('bluebird')
+    , fs = Promise.promisifyAll(require("fs"))
     , ImageTools = require('./util/image_tools')
     , MessageQueue = require('./util/message_queue')
     , FileRepo = require('./util/file_repo');
@@ -39,7 +40,7 @@ function renderPreview(stlPath) {
             var cmd = "/Applications/Blender/blender.app/Contents/MacOS/" + cmd;
         }
 
-        // Execute render process as a shelled process
+        // Run render as a shelled process
         console.info(`Rendering preview image with command: ${cmd}`);
         exec(cmd, {maxBuffer: MAX_BUFFER_SIZE}, function callback(err, stdOut, stdErr) {
             if (err) {
@@ -49,8 +50,14 @@ function renderPreview(stlPath) {
                 reject(err)
             } else {
                 console.info(`Render completed: outputFile=${outputFile}`);
-                console.info(`Standard output: ${stdOut}`);
-                resolve(outputFile);
+                //console.info(`Standard output: ${stdOut}`);
+                //console.info(`Standard error: ${stdErr}`);
+
+                console.info(`Deleting downloaded model: ${stlPath}`);
+                fs.unlinkAsync(stlPath)
+                    .then(function () {
+                        return resolve(outputFile); // Return preview image path
+                    });
             }
         });
     });
@@ -66,6 +73,7 @@ function processMessage(data) {
             return resolve();
         }
 
+        console.info(`Processing message ${data.Messages[0].Body}`);
         var message = data.Messages[0]
             , file_info = JSON.parse(message.Body)
             , file_path = TEMP_DIR + file_info._id
@@ -81,31 +89,31 @@ function processMessage(data) {
             );
         } else {
             FileRepo.downloadFromS3(file_info.file_path)
-                .then(function(file_path) {
-                    return renderPreview(file_path);
+                .then(function(stlFilePath) {
+                    return renderPreview(stlFilePath);
                 })
-                .then(function(file_path) {
+                .then(function(pngFilePath) {
                     console.info("Creating multiple sizes for primary, thumbnail, Printrhub preview");
-                    ImageTools.createAllSizes(file_path)
+                    ImageTools.createAllSizes(pngFilePath)
                         .then(function(j) {
-                            var _f = j[0].split("/").pop();
-                            return FileRepo.uploadToS3(j[0], 'img/png', s3uploadpath + _f)
+                            var file = j[0].split("/").pop();
+                            return FileRepo.uploadToS3(j[0], 'img/png', s3uploadpath + file)
                                 .then(function(preview) {
                                     return [j, preview];
                                 }
                             );
                         })
                         .spread(function(j, preview) {
-                            var _f = j[1].split("/").pop();
-                            return FileRepo.uploadToS3(j[1], 'img/png', s3uploadpath + _f)
+                            var file = j[1].split("/").pop();
+                            return FileRepo.uploadToS3(j[1], 'img/png', s3uploadpath + file)
                                 .then(function(thumb) {
                                     return [j, preview, thumb];
                                 }
                             );
                         })
                         .spread(function(j, preview, thumb) {
-                            var _f = j[2].split("/").pop();
-                            return FileRepo.uploadToS3(j[2], 'img/png', s3uploadpath + _f)
+                            var file = j[2].split("/").pop();
+                            return FileRepo.uploadToS3(j[2], 'img/png', s3uploadpath + file)
                                 .then(function(raw) {
                                     return [j, preview, thumb, raw];
                                 }
@@ -123,6 +131,8 @@ function processMessage(data) {
                                     resolve();
                                 }
                             );
+
+                            resolve(file_path);
                         });
                     }
                 );

@@ -56,6 +56,7 @@ module.exports.createAllSizes = function(file) {
                 j.cover(270, 240)
                     .write(paths[1])
                     .dither565();
+                console.info(`Finished writing file: file=${paths[1]}`);
 
                 var c = 0;
                 var buf = new Buffer((j.bitmap.width * j.bitmap.height) * 2);

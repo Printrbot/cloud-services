@@ -13,7 +13,6 @@ AWS.config.update({region: ac.region});
  * Sends a message to the render request queue.
  */
 module.exports.sendRenderCompleteMessage = function(item) {
-    console.info(`Sending render completed message: ${item}`);
     return new Promise(function(resolve, reject) {
         var sqs = new AWS.SQS();
         var rparams = {
@@ -23,6 +22,7 @@ module.exports.sendRenderCompleteMessage = function(item) {
         };
         sqs.sendMessage(rparams, function(err, data) {
             if (err) {
+                console.error(`Failed to send render complete message: ${err}`);
                 reject(err);
             } else {
                 resolve(data);
@@ -61,7 +61,7 @@ module.exports.poolMessage = function(queue_url) {
     var params = {
         QueueUrl: queue_url,
         MaxNumberOfMessages: 1,
-        VisibilityTimeout: 30,
+        VisibilityTimeout: 30, 
         WaitTimeSeconds: 20
     };
 

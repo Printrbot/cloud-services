@@ -23,7 +23,7 @@ module.exports.deleteFiles = function(files) {
         var params = {
             "Bucket": ac.bucket,
             "Delete": {
-                "Objects": files,
+                "Objects": files
             }
         };
         s3.deleteObjects(params, function(err, data) {
@@ -33,25 +33,24 @@ module.exports.deleteFiles = function(files) {
             resolve(data);
         });
     });
-}
+};
 
-
-module.exports.uploadToS3 = function(file_path, content_type, s3uploadpath) {
+module.exports.uploadToS3 = function(localFile, contentType, s3UploadPath) {
     return new Promise(function(resolve, reject) {
-        fs.readFileAsync(file_path)
+        fs.readFileAsync(localFile)
             .then(function(data) {
                 var params = {
-                    Key: s3uploadpath,
+                    Key: s3UploadPath,
                     Body: data,
                     ACL: 'public-read',
-                    ContentType: content_type
+                    ContentType: contentType
                 };
-                console.info(`Uploading to S3: file_path=${file_path} s3uploadpath=${s3uploadpath} content_type=${content_type}`);
+                console.info(`Uploading to S3: localFile=${localFile} s3UploadPath=${s3UploadPath} contentType=${contentType}`);
                 return s3.uploadAsync(params);
             })
             .then(function(floc) {
-                console.info(`Deleting local file: ${file_path}`);
-                return fs.unlinkAsync(file_path)
+                console.info(`Deleting local file: ${localFile}`);
+                return fs.unlinkAsync(localFile)
                     .then(function () {
                         return resolve(floc);
                     });
@@ -60,7 +59,7 @@ module.exports.uploadToS3 = function(file_path, content_type, s3uploadpath) {
             });
         }
     );
-}
+};
 
 module.exports.downloadFromS3 = function(key) {
     return new Promise(function(resolve, reject) {
@@ -80,9 +79,8 @@ module.exports.downloadFromS3 = function(key) {
                 resolve(file_path);
             })
             .send();
-        }
-    );
-}
+    });
+};
 
 module.exports.downloadFile = function(url, file_path) {
     return new Promise(function(resolve, reject) {
@@ -99,10 +97,11 @@ module.exports.downloadFile = function(url, file_path) {
             fs.unlink(file_path, function (err) {
                 if (err) {
                     console.error(`Failed to delete local file: ${err}`);
+                } else {
+                    console.log('Temporary file deleted');
                 }
-                console.log('Temporary file deleted');
             });
             reject(err);
         });
     });
-}
+};
