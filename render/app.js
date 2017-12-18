@@ -13,7 +13,8 @@ var AWS = require('aws-sdk')
     , MessageQueue = require('./util/message_queue')
     , FileRepo = require('./util/file_repo');
 
-const TEMP_DIR = '/tmp/';
+const TEMP_DIR = '/tmp/render/';
+const MODEL_PREVIEW_BIN = '~/faulgl/model-preview';
 const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 
 /**
@@ -25,7 +26,7 @@ function runLoop() {
         .then(runLoop)
         .catch(function(err) {
             console.error(`An error occurred while processing render request: ${err}`);
-            return runLoop();
+            runLoop();
         }
     );
 }
@@ -33,12 +34,7 @@ function runLoop() {
 function renderPreview(stlPath) {
     return new Promise(function(resolve, reject) {
         var outputFile = stlPath + ".png";
-        var cmd = "blender -b render.blend -P run.py -- " + stlPath + " " + outputFile;
-
-        // Path hack when running locally (Mac only)
-        if (process.platform == "darwin") {
-            var cmd = "/Applications/Blender/blender.app/Contents/MacOS/" + cmd;
-        }
+        var cmd = "$MODEL_PREVIEW_BIN -input " + stlPath + " -output " + outputFile;
 
         // Run render as a shelled process
         console.info(`Rendering preview image with command: ${cmd}`);
@@ -47,17 +43,18 @@ function renderPreview(stlPath) {
                 console.error(`Failed to render preview image: ${err}`);
                 console.error(`Standard output: ${stdOut}`);
                 console.error(`Standard error: ${stdErr}`);
-                reject(err)
+                reject(err);
             } else {
                 console.info(`Render completed: outputFile=${outputFile}`);
-                //console.info(`Standard output: ${stdOut}`);
-                //console.info(`Standard error: ${stdErr}`);
+                console.info(`Standard output: ${stdOut}`);
+                console.info(`Standard error: ${stdErr}`);
 
                 console.info(`Deleting downloaded model: ${stlPath}`);
                 fs.unlinkAsync(stlPath)
                     .then(function () {
                         return resolve(outputFile); // Return preview image path
-                    });
+                    }
+                );
             }
         });
     });

@@ -9,7 +9,7 @@ var exec = require('child_process').exec
     , fs = Promise.promisifyAll(require("fs"))
     , http = require('http');
 
-const TEMP_DIR = '/tmp/';
+const TEMP_DIR = '/tmp/render/';
 
 AWS.config.update({region: 'us-west-2'});
 
@@ -62,23 +62,20 @@ module.exports.uploadToS3 = function(localFile, contentType, s3UploadPath) {
 };
 
 module.exports.downloadFromS3 = function(key) {
+    fs.accessSync(TEMP_DIR);
     return new Promise(function(resolve, reject) {
-        var file_path = TEMP_DIR + hat();
+        var file_path = TEMP_DIR + key.substring(key.lastIndexOf("/") + 1);
         var tempFile = require('fs').createWriteStream(file_path);
         var params = { Bucket: ac.bucket, Key: key };
         var s3 = new AWS.S3();
 
         console.info(`Downloading: (S3) ${key} => (local) ${file_path}`);
         s3.getObject(params)
-            .on('httpData', function(chunk) {
-                tempFile.write(chunk);
-            })
-            .on('httpDone', function() {
-                tempFile.end();
-                console.info(`Download complete: (S3) ${key} => (local) ${file_path}`);
+            .createReadStream()
+            .pipe(tempFile)
+            .on('finish', function() {
                 resolve(file_path);
-            })
-            .send();
+            });
     });
 };
 
