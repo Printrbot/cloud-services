@@ -62,7 +62,6 @@ module.exports.uploadToS3 = function(localFile, contentType, s3UploadPath) {
 };
 
 module.exports.downloadFromS3 = function(key) {
-    fs.accessSync(TEMP_DIR);
     return new Promise(function(resolve, reject) {
         var file_path = TEMP_DIR + key.substring(key.lastIndexOf("/") + 1);
         var tempFile = require('fs').createWriteStream(file_path);
