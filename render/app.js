@@ -14,7 +14,6 @@ var AWS = require('aws-sdk')
     , FileRepo = require('./util/file_repo');
 
 const TEMP_DIR = '/tmp/render/';
-const MODEL_PREVIEW_BIN = '~/faulgl/model-preview';
 const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 
 /**
@@ -34,7 +33,7 @@ function runLoop() {
 function renderPreview(stlPath) {
     return new Promise(function(resolve, reject) {
         var outputFile = stlPath + ".png";
-        var cmd = "$MODEL_PREVIEW_BIN -input " + stlPath + " -output " + outputFile;
+        var cmd = "./model-preview -input " + stlPath + " -output " + outputFile;
 
         // Run render as a shelled process
         console.info(`Rendering preview image with command: ${cmd}`);
